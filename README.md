@@ -5,4 +5,4 @@
 - [論理国語](ronrikokugo)
 - [英語コミュニケーション](eikomyu)
 - [全体情報](info)
-- [お問い合わせ](inquiry.html)
+- [お問い合わせ](https://docs.google.com/forms/d/e/1FAIpQLSeQSO3fGWAL3XGpva-dwb-m-vBiR3AokKubNArf2TlfHHD2Cg/viewform?usp=dialog)
