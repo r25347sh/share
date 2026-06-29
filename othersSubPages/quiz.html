@@ -3,345 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>セレクトクイズ</title>
+    <title>セレクトクイズ - リモート対応</title>
     <style>
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background: #f8f9fa;
-        }
-        .container {
-            background: white;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        h1 {
-            text-align: center;
-            color: #333;
-        }
-        .quiz-item {
-            margin-bottom: 40px;
-            padding: 20px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-        }
-        .question {
-            font-size: 1.2em;
-            margin-bottom: 15px;
-            font-weight: bold;
-        }
-        .options {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .option {
-            padding: 12px 15px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        .option:hover {
-            background: #f0f8ff;
-            border-color: #4a90e2;
-        }
-        .option.selected {
-            background: #e3f2fd;
-            border-color: #2196f3;
-            font-weight: bold;
-        }
-        .option.correct {
-            background: #d4edda;
-            border-color: #28a745;
-        }
-        .option.wrong {
-            background: #f8d7da;
-            border-color: #dc3545;
-        }
-        button {
-            padding: 10px 20px;
-            font-size: 1em;
-            cursor: pointer;
-            border: none;
-            border-radius: 6px;
-        }
-        .btn-check {
-            background: #28a745;
-            color: white;
-        }
-        .btn-next {
-            background: #007bff;
-            color: white;
-        }
-        .note {
-            margin-top: 15px;
-            padding: 12px;
-            background: #fff3cd;
-            border-radius: 6px;
-            font-size: 0.95em;
-            display: none;
-        }
-        .result {
-            margin-top: 10px;
-            font-weight: bold;
-        }
-        .upload-area {
-            border: 2px dashed #aaa;
-            padding: 40px;
-            text-align: center;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            cursor: pointer;
-        }
-        .progress {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 1.1em;
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #333; }
+        .input-group { margin: 15px 0; }
+        input[type="text"] { width: 100%; padding: 12px; font-size: 1em; border: 2px solid #ddd; border-radius: 8px; }
+        button { padding: 12px 20px; margin-right: 8px; font-size: 1em; border: none; border-radius: 8px; cursor: pointer; }
+        .btn-primary { background: #007bff; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .upload-area { border: 2px dashed #aaa; padding: 40px; text-align: center; border-radius: 10px; margin: 20px 0; cursor: pointer; }
+        .quiz-item { margin-bottom: 35px; padding: 20px; border: 2px solid #e0e0e0; border-radius: 10px; }
+        .option { padding: 12px 15px; border: 2px solid #ddd; border-radius: 8px; margin: 8px 0; cursor: pointer; }
+        .option:hover { background: #f0f8ff; border-color: #4a90e2; }
+        .option.selected { background: #e3f2fd; border-color: #2196f3; }
+        .option.correct { background: #d4edda; border-color: #28a745; }
+        .option.wrong { background: #f8d7da; border-color: #dc3545; }
+        .note { margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; display: none; }
+        .progress { text-align: center; font-size: 1.2em; margin: 20px 0; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📝 セレクトクイズ</h1>
-        
-        <div id="uploadSection">
+        <h1>📝 セレクトクイズ リモート版</h1>
+
+        <!-- 読み込み方法選択 -->
+        <div id="loadSection">
+            <h2>クイズを読み込む</h2>
+            
+            <!-- URL直接入力 -->
+            <div class="input-group">
+                <label><strong>① 直接URLを入力</strong></label>
+                <input type="text" id="urlInput" placeholder="https://example.com/quiz/sample.selectquiz" />
+                <button class="btn-primary" onclick="loadFromURL()">URLから読み込む</button>
+            </div>
+
+            <!-- ID入力 -->
+            <div class="input-group">
+                <label><strong>② クイズIDで読み込む</strong> (LINK.js使用)</label>
+                <input type="text" id="quizIdInput" placeholder="quiz001" />
+                <button class="btn-primary" onclick="loadFromID()">IDから読み込む</button>
+            </div>
+
+            <!-- ファイルアップロード -->
             <div class="upload-area" id="dropArea">
-                <p><strong>.selectquiz ファイルを選択</strong></p>
-                <p>またはここにファイルをドラッグ＆ドロップ</p>
+                <p><strong>③ ローカルファイル</strong></p>
+                <p>ここに .selectquiz ファイルをドラッグ＆ドロップ</p>
                 <input type="file" id="fileInput" accept=".selectquiz" style="display:none;">
                 <button onclick="document.getElementById('fileInput').click()">ファイルを選択</button>
             </div>
         </div>
 
+        <!-- クイズ表示エリア -->
         <div id="quizSection" style="display:none;">
             <div class="progress" id="progress"></div>
-            
             <div id="quizContainer"></div>
-
-            <div style="text-align:center; margin-top:30px;">
-                <button class="btn-check" onclick="checkAllAnswers()">全問解答確認</button>
-                <button class="btn-next" onclick="nextQuizSet()" style="margin-left:10px;">次の問題へ</button>
+            
+            <div style="text-align:center; margin:30px 0;">
+                <button class="btn-success" onclick="checkAllAnswers()">解答確認</button>
+                <button onclick="location.reload()" style="margin-left:10px;">別のクイズを読み込む</button>
             </div>
-        </div>
-
-        <div id="summary" style="display:none; margin-top:40px; text-align:center;">
-            <h2>クイズ完了！</h2>
-            <p id="score"></p>
-            <button onclick="location.reload()">もう一度最初から</button>
         </div>
     </div>
 
     <script>
+        // ============= LINK.js の設定（ここにあなたのリンク情報を書いてください） =============
+        const LINKS = {
+            "quiz001": "https://your-domain.com/quizzes/quiz001.selectquiz",
+            "quiz002": "https://your-domain.com/quizzes/quiz002.selectquiz",
+            "sample": "https://example.com/sample.selectquiz",
+            // ここにどんどん追加できます
+        };
+
         let quizzes = [];
         let currentAnswers = [];
-        let currentQuizIndex = 0;
 
-        // ファイル読み込み
-        function loadFile(file) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                parseSelectQuiz(e.target.result);
-            };
-            reader.readAsText(file);
-        }
-
-        // .selectquiz 形式のパース
+        // パース関数（前回と同じ）
         function parseSelectQuiz(text) {
             quizzes = [];
             const lines = text.trim().split(/\r?\n/);
             
             lines.forEach(line => {
                 if (!line.trim()) return;
-                
-                // 引用符付きCSV風の処理
                 const parts = [];
                 let current = '';
                 let inQuote = false;
                 
-                for (let i = 0; i < line.length; i++) {
-                    const char = line[i];
-                    if (char === '"') {
-                        inQuote = !inQuote;
-                    } else if (char === ',' && !inQuote) {
+                for (let char of line) {
+                    if (char === '"') inQuote = !inQuote;
+                    else if (char === ',' && !inQuote) {
                         parts.push(current.trim());
                         current = '';
                     } else if (char === ';' && !inQuote) {
-                        // 行の終わり
+                        // 無視
                     } else {
                         current += char;
                     }
                 }
                 if (current) parts.push(current.trim());
-                
+
                 if (parts.length < 4) return;
-                
+
                 const question = parts[0].replace(/^"|"$/g, '');
                 const correct = parts[1].replace(/^"|"$/g, '');
                 const note = parts[2].replace(/^"|"$/g, '');
                 
-                // select: 以降の選択肢を取得
                 let options = [];
                 let foundSelect = false;
-                
                 for (let i = 3; i < parts.length; i++) {
                     let opt = parts[i].replace(/^"|"$/g, '');
-                    if (opt === 'select' || opt.startsWith('select:')) {
-                        foundSelect = true;
-                        continue;
-                    }
-                    if (foundSelect && opt) {
-                        options.push(opt);
-                    }
+                    if (opt.includes('select')) { foundSelect = true; continue; }
+                    if (foundSelect && opt) options.push(opt);
                 }
-                
-                if (question && options.length > 0) {
-                    quizzes.push({
-                        question: question,
-                        correct: correct,
-                        note: note,
-                        options: options
-                    });
+
+                if (question && options.length >= 2) {
+                    quizzes.push({ question, correct, note, options });
                 }
             });
-            
-            if (quizzes.length === 0) {
-                alert('有効なクイズデータが見つかりませんでした。');
-                return;
-            }
-            
-            document.getElementById('uploadSection').style.display = 'none';
-            document.getElementById('quizSection').style.display = 'block';
-            currentQuizIndex = 0;
-            renderCurrentQuiz();
         }
 
-        // 現在のクイズを表示
-        function renderCurrentQuiz() {
+        // URLから読み込み
+        async function loadFromURL() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) return alert('URLを入力してください');
+            
+            try {
+                const res = await fetch(url);
+                if (!res.ok) throw new Error('ファイル取得失敗');
+                const text = await res.text();
+                parseSelectQuiz(text);
+                startQuiz();
+            } catch (e) {
+                alert('読み込みに失敗しました: ' + e.message);
+            }
+        }
+
+        // IDから読み込み
+        async function loadFromID() {
+            const id = document.getElementById('quizIdInput').value.trim();
+            if (!id) return alert('クイズIDを入力してください');
+            
+            const url = LINKS[id];
+            if (!url) return alert(`ID "${id}" が見つかりません。LINKSに登録してください。`);
+            
+            document.getElementById('urlInput').value = url; // 確認用にURLも表示
+            const res = await fetch(url);
+            if (!res.ok) throw new Error('ファイル取得失敗');
+            const text = await res.text();
+            parseSelectQuiz(text);
+            startQuiz();
+        }
+
+        function startQuiz() {
+            if (quizzes.length === 0) return alert('クイズデータがありません');
+            document.getElementById('loadSection').style.display = 'none';
+            document.getElementById('quizSection').style.display = 'block';
+            renderQuizzes();
+        }
+
+        function renderQuizzes() {
             const container = document.getElementById('quizContainer');
             container.innerHTML = '';
             currentAnswers = new Array(quizzes.length).fill(null);
-            
-            quizzes.forEach((quiz, index) => {
-                const quizEl = document.createElement('div');
-                quizEl.className = 'quiz-item';
-                quizEl.id = `quiz-${index}`;
-                
-                let optionsHTML = '';
-                quiz.options.forEach((opt, i) => {
-                    optionsHTML += `
-                        <div class="option" data-index="${index}" data-option="${i}" onclick="selectOption(${index}, ${i}, this)">
-                            ${opt}
-                        </div>
-                    `;
-                });
-                
-                quizEl.innerHTML = `
-                    <div class="question">${index + 1}. ${quiz.question}</div>
-                    <div class="options">${optionsHTML}</div>
-                    <div class="note" id="note-${index}">${quiz.note}</div>
-                    <div class="result" id="result-${index}"></div>
+
+            quizzes.forEach((quiz, i) => {
+                const div = document.createElement('div');
+                div.className = 'quiz-item';
+                div.innerHTML = `
+                    <div class="question">${i+1}. ${quiz.question}</div>
+                    <div class="options" id="options-${i}"></div>
+                    <div class="note" id="note-${i}">${quiz.note}</div>
+                    <div class="result" id="result-${i}"></div>
                 `;
-                
-                container.appendChild(quizEl);
+                container.appendChild(div);
+
+                const optionsDiv = document.getElementById(`options-${i}`);
+                quiz.options.forEach((opt, j) => {
+                    const optDiv = document.createElement('div');
+                    optDiv.className = 'option';
+                    optDiv.textContent = opt;
+                    optDiv.onclick = () => selectOption(i, j, optDiv);
+                    optionsDiv.appendChild(optDiv);
+                });
             });
-            
-            updateProgress();
+
+            document.getElementById('progress').textContent = `全 ${quizzes.length} 問`;
         }
 
-        // 選択
-        window.selectOption = function(quizIndex, optionIndex, element) {
-            const quizItem = document.getElementById(`quiz-${quizIndex}`);
-            const options = quizItem.querySelectorAll('.option');
-            
-            options.forEach(opt => opt.classList.remove('selected'));
+        window.selectOption = function(index, optIndex, element) {
+            const parent = element.parentElement;
+            parent.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
-            
-            currentAnswers[quizIndex] = quizIndex + '-' + optionIndex;
-        }
-
-        // 全問解答確認
-        window.checkAllAnswers = function() {
-            let correctCount = 0;
-            
-            quizzes.forEach((quiz, index) => {
-                const resultEl = document.getElementById(`result-${index}`);
-                const noteEl = document.getElementById(`note-${index}`);
-                const selectedEl = document.querySelector(`#quiz-${index} .option.selected`);
-                
-                const selectedOption = currentAnswers[index];
-                const isCorrect = selectedOption && 
-                    quiz.options[parseInt(selectedOption.split('-')[1])] === quiz.correct;
-                
-                if (isCorrect) {
-                    correctCount++;
-                    resultEl.innerHTML = `<span style="color:#28a745;">✅ 正解</span>`;
-                    if (selectedEl) selectedEl.classList.add('correct');
-                } else {
-                    resultEl.innerHTML = `<span style="color:#dc3545;">❌ 不正解</span> (正解: ${quiz.correct})`;
-                    if (selectedEl) selectedEl.classList.add('wrong');
-                    
-                    // 正解の選択肢を強調
-                    const options = document.querySelectorAll(`#quiz-${index} .option`);
-                    options.forEach(opt => {
-                        if (opt.textContent.trim() === quiz.correct) {
-                            opt.classList.add('correct');
-                        }
-                    });
-                }
-                
-                noteEl.style.display = 'block';
-            });
-            
-            updateProgress();
-            alert(`採点完了！ ${correctCount} / ${quizzes.length} 正解`);
-        }
-
-        // 進捗表示
-        function updateProgress() {
-            document.getElementById('progress').textContent = 
-                `問題 ${currentQuizIndex + 1} / ${quizzes.length}`;
-        }
-
-        // 次の問題セット（今は全問一括表示なので再読み込み）
-        window.nextQuizSet = function() {
-            if (confirm('次の問題セットを読み込みますか？')) {
-                location.reload();
-            }
+            currentAnswers[index] = optIndex;
         };
 
-        // イベントリスナー
-        document.getElementById('fileInput').addEventListener('change', (e) => {
-            if (e.target.files.length > 0) {
-                loadFile(e.target.files[0]);
+        window.checkAllAnswers = function() {
+            let score = 0;
+            quizzes.forEach((quiz, i) => {
+                const selected = currentAnswers[i];
+                const isCorrect = selected !== null && quiz.options[selected] === quiz.correct;
+                const resultEl = document.getElementById(`result-${i}`);
+                const noteEl = document.getElementById(`note-${i}`);
+
+                if (isCorrect) {
+                    score++;
+                    resultEl.innerHTML = `<span style="color:#28a745;">✅ 正解</span>`;
+                } else {
+                    resultEl.innerHTML = `<span style="color:#dc3545;">❌ 不正解</span> (正解: ${quiz.correct})`;
+                }
+                noteEl.style.display = 'block';
+            });
+            alert(`採点結果: ${score} / ${quizzes.length} 正解！`);
+        };
+
+        // ファイルアップロード（従来通り）
+        document.getElementById('fileInput').addEventListener('change', e => {
+            if (e.target.files[0]) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    parseSelectQuiz(ev.target.result);
+                    startQuiz();
+                };
+                reader.readAsText(e.target.files[0]);
             }
         });
 
-        // ドラッグ&ドロップ対応
+        // ドラッグ&ドロップ
         const dropArea = document.getElementById('dropArea');
-        
-        dropArea.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropArea.style.background = '#e3f2fd';
-        });
-        
-        dropArea.addEventListener('dragleave', () => {
-            dropArea.style.background = '';
-        });
-        
-        dropArea.addEventListener('drop', (e) => {
+        dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.background = '#e3f2fd'; });
+        dropArea.addEventListener('dragleave', () => dropArea.style.background = '');
+        dropArea.addEventListener('drop', e => {
             e.preventDefault();
             dropArea.style.background = '';
-            if (e.dataTransfer.files.length > 0) {
-                loadFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files[0]) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    parseSelectQuiz(ev.target.result);
+                    startQuiz();
+                };
+                reader.readAsText(e.dataTransfer.files[0]);
             }
         });
-        
-        // 初期メッセージ
-        console.log('%cセレクトクイズローダー準備完了', 'color:#28a745; font-weight:bold;');
     </script>
 </body>
 </html>
