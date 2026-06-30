@@ -3,224 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マルチクイズ - 選択 / 並び替え / 入力</title>
+    <title>マルチクイズ</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; }
-        .container { max-width: 950px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
+        .container { max-width: 1000px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
         h1 { text-align: center; }
-        .input-group { margin: 15px 0; }
-        input[type="text"] { width: 100%; padding: 12px; border: 2px solid #ddd; border-radius: 8px; }
-        button { padding: 12px 20px; margin: 5px; border: none; border-radius: 8px; cursor: pointer; font-size: 1em; }
-        .btn-primary { background: #007bff; color: white; }
-        .btn-success { background: #28a745; color: white; }
-        .upload-area { border: 2px dashed #aaa; padding: 40px; text-align: center; border-radius: 10px; margin: 20px 0; }
-        .quiz-item { margin-bottom: 45px; padding: 25px; border: 2px solid #e0e0e0; border-radius: 12px; }
+        .upload-area { border: 2px dashed #aaa; padding: 40px; text-align: center; border-radius: 10px; margin: 20px 0; cursor: pointer; }
+        .quiz-item { margin-bottom: 40px; padding: 25px; border: 2px solid #e0e0e0; border-radius: 12px; }
         .question { font-size: 1.25em; font-weight: bold; margin-bottom: 15px; }
-        .option { padding: 14px; border: 2px solid #ddd; border-radius: 8px; margin: 6px 0; cursor: pointer; }
-        .option:hover { background: #f0f8ff; }
-        .option.selected { background: #e3f2fd; border-color: #2196f3; }
-        .sort-list { list-style: none; padding: 0; }
-        .sort-item { padding: 12px; background: #fff; border: 2px solid #ccc; margin: 6px 0; border-radius: 6px; cursor: move; }
-        .input-answer { width: 100%; padding: 12px; font-size: 1.1em; border: 2px solid #ddd; border-radius: 8px; }
-        .note { margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; display: none; }
-        .progress { text-align: center; font-size: 1.2em; margin: 20px 0; font-weight: bold; }
+        button { padding: 10px 18px; margin: 5px; border-radius: 8px; cursor: pointer; }
+        .btn-success { background: #28a745; color: white; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 マルチクイズ（選択・並び替え・入力対応）</h1>
+        <h1>🎯 マルチクイズ</h1>
 
         <div id="loadSection">
-            <div class="input-group">
-                <label><strong>URLから読み込み</strong></label>
-                <input type="text" id="urlInput" placeholder="https://.../quiz.multiquiz" />
-                <button class="btn-primary" onclick="loadFromURL()">読み込む</button>
-            </div>
-
-            <div class="input-group">
-                <label><strong>クイズID</strong></label>
-                <input type="text" id="quizIdInput" placeholder="systan1901" />
-                <button class="btn-primary" onclick="loadFromID()">IDから読み込む</button>
-            </div>
-
             <div class="upload-area" id="dropArea">
-                <p><strong>またはファイルをドラッグ＆ドロップ</strong></p>
+                <p><strong>.multiquiz ファイルを読み込む</strong></p>
                 <input type="file" id="fileInput" accept=".multiquiz" style="display:none;">
                 <button onclick="document.getElementById('fileInput').click()">ファイルを選択</button>
             </div>
         </div>
 
         <div id="quizSection" style="display:none;">
-            <div class="progress" id="progress"></div>
+            <h2 id="quizTitle"></h2>
             <div id="quizContainer"></div>
-            <div style="text-align:center; margin-top:30px;">
-                <button class="btn-success" onclick="checkAllAnswers()">解答確認</button>
-                <button onclick="location.reload()">新しいクイズを読み込む</button>
+            <div style="text-align:center; margin:30px;">
+                <button class="btn-success" onclick="checkAnswers()">解答確認</button>
             </div>
         </div>
     </div>
 
+    <script src="scanner.js"></script>
     <script>
-        const LINKS = {
-            "systan1901": "https://your-domain.com/systan.multiquiz",
-        };
-
-        let quizzes = [];
-        let currentAnswers = [];
-
-        function parseMultiquiz(text) {
-            quizzes = [];
-            const lines = text.trim().split(/\r?\n/);
-            lines.forEach(line => {
-                if (!line.trim()) return;
-                const parts = [];
-                let current = '', inQuote = false;
-                for (let char of line) {
-                    if (char === '"') inQuote = !inQuote;
-                    else if (char === ',' && !inQuote) {
-                        parts.push(current.trim());
-                        current = '';
-                    } else current += char;
-                }
-                if (current) parts.push(current.trim());
-
-                if (parts.length < 4) return;
-
-                const question = parts[0].replace(/^"|"$/g, '');
-                const correct = parts[1].replace(/^"|"$/g, '');
-                const note = parts[2].replace(/^"|"$/g, '');
-                const typeMatch = parts[3].match(/type:"(\w+)"/);
-                const type = typeMatch ? typeMatch[1] : 'select';
-
-                const options = parts.slice(4).map(p => p.replace(/^"|"$/g, '')).filter(Boolean);
-
-                quizzes.push({ question, correct, note, type, options });
-            });
-        }
-
-        function renderQuizzes() {
-            const container = document.getElementById('quizContainer');
-            container.innerHTML = '';
-            currentAnswers = new Array(quizzes.length).fill(null);
-
-            quizzes.forEach((q, i) => {
-                const div = document.createElement('div');
-                div.className = 'quiz-item';
-                div.innerHTML = `<div class="question">${i+1}. ${q.question}</div>`;
-
-                if (q.type === 'select') {
-                    let opts = '';
-                    q.options.forEach(opt => {
-                        opts += `<div class="option" onclick="selectOption(${i}, '${opt}', this)">${opt}</div>`;
-                    });
-                    div.innerHTML += `<div class="options">${opts}</div>`;
-                } 
-                else if (q.type === 'sort') {
-                    let list = `<ul class="sort-list" id="sort-${i}" ondrop="drop(event)" ondragover="allowDrop(event)">`;
-                    q.options.forEach((item, j) => {
-                        list += `<li class="sort-item" draggable="true" ondragstart="drag(event)" data-id="${j}">${item}</li>`;
-                    });
-                    list += `</ul>`;
-                    div.innerHTML += list;
-                } 
-                else if (q.type === 'input') {
-                    div.innerHTML += `<input type="text" class="input-answer" id="input-${i}" placeholder="答えを入力">`;
-                }
-
-                div.innerHTML += `
-                    <div class="note" id="note-${i}">${q.note}</div>
-                    <div class="result" id="result-${i}"></div>
-                `;
-                container.appendChild(div);
-            });
-
-            document.getElementById('progress').textContent = `全 ${quizzes.length} 問`;
-        }
-
-        window.selectOption = (i, ans, el) => {
-            const parent = el.parentElement;
-            parent.querySelectorAll('.option').forEach(e => e.classList.remove('selected'));
-            el.classList.add('selected');
-            currentAnswers[i] = ans;
-        };
-
-        // 並び替え
-        window.allowDrop = e => e.preventDefault();
-        window.drag = e => e.dataTransfer.setData("text", e.target.dataset.id);
-        window.drop = e => {
-            e.preventDefault();
-            const list = e.currentTarget;
-            const items = Array.from(list.getElementsByTagName('li'));
-            const from = parseInt(e.dataTransfer.getData("text"));
-            const to = items.indexOf(e.target);
-            if (from !== to && to >= 0) {
-                const moved = items[from];
-                list.removeChild(moved);
-                list.insertBefore(moved, items[to]);
-            }
-        };
-
-        window.checkAllAnswers = () => {
-            let score = 0;
-            quizzes.forEach((q, i) => {
-                const resultEl = document.getElementById(`result-${i}`);
-                const noteEl = document.getElementById(`note-${i}`);
-                let userAnswer = '';
-
-                if (q.type === 'select') {
-                    userAnswer = currentAnswers[i];
-                } else if (q.type === 'sort') {
-                    userAnswer = Array.from(document.getElementById(`sort-${i}`).children)
-                        .map(li => li.textContent.trim()).join(' | ');
-                } else if (q.type === 'input') {
-                    userAnswer = document.getElementById(`input-${i}`).value.trim();
-                }
-
-                const isCorrect = (q.type === 'input') 
-                    ? userAnswer.toLowerCase() === q.correct.toLowerCase()
-                    : userAnswer === q.correct || userAnswer === q.options.join(' | ');
-
-                if (isCorrect) {
-                    score++;
-                    resultEl.innerHTML = `<span style="color:#28a745">✅ 正解</span>`;
-                } else {
-                    resultEl.innerHTML = `<span style="color:#dc3545">❌ 不正解</span> (正解: ${q.correct})`;
-                }
-                noteEl.style.display = 'block';
-            });
-            alert(`結果: ${score}/${quizzes.length} 正解`);
-        };
-
-        // 読み込み関数（前回と同じ）
-        async function loadFromURL() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) return alert("URLを入力してください");
-            const res = await fetch(url);
-            const text = await res.text();
-            parseMultiquiz(text);
-            startQuiz();
-        }
-
-        async function loadFromID() {
-            const id = document.getElementById('quizIdInput').value.trim();
-            if (LINKS[id]) {
-                document.getElementById('urlInput').value = LINKS[id];
-                const res = await fetch(LINKS[id]);
-                const text = await res.text();
-                parseMultiquiz(text);
-                startQuiz();
-            }
-        }
-
-        function startQuiz() {
-            document.getElementById('loadSection').style.display = 'none';
-            document.getElementById('quizSection').style.display = 'block';
-            renderQuizzes();
-        }
+        let currentQuizzes = [];
 
         // ファイル読み込み
         document.getElementById('fileInput').addEventListener('change', e => {
-            if (e.target.files[0]) readFile(e.target.files[0]);
+            if (e.target.files[0]) loadFile(e.target.files[0]);
         });
 
         const dropArea = document.getElementById('dropArea');
@@ -229,17 +51,42 @@
         dropArea.addEventListener('drop', e => {
             e.preventDefault();
             dropArea.style.background = '';
-            if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
+            if (e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
         });
 
-        function readFile(file) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                parseMultiquiz(e.target.result);
-                startQuiz();
-            };
-            reader.readAsText(file);
+        async function loadFile(file) {
+            const text = await file.text();
+            const result = scanMultiquiz(text);   // scanner.js の関数を呼ぶ
+            
+            if (result.error) {
+                alert("エラー: " + result.error);
+                return;
+            }
+
+            currentQuizzes = result.quizzes;
+            document.getElementById('quizTitle').textContent = result.title || "クイズ";
+            document.getElementById('loadSection').style.display = 'none';
+            document.getElementById('quizSection').style.display = 'block';
+            
+            renderQuizzes();
         }
+
+        function renderQuizzes() {
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = '';
+
+            currentQuizzes.forEach((q, index) => {
+                // scanner.js側でrenderQuestionHTML関数を作っておく想定
+                const html = renderQuestionHTML(q, index);
+                container.innerHTML += html;
+            });
+        }
+
+        window.checkAnswers = () => {
+            let score = 0;
+            // ここに採点ロジック（scanner.jsに移動してもOK）
+            alert("採点機能はscanner.js側で拡張してください");
+        };
     </script>
 </body>
 </html>
