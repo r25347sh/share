@@ -59,9 +59,7 @@
             e.preventDefault();
             dropZone.classList.add('dragover');
         });
-
         dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        
         dropZone.addEventListener('drop', e => {
             e.preventDefault();
             dropZone.classList.remove('dragover');
@@ -121,13 +119,13 @@
             currentQuiz.sections.forEach((section, secIdx) => {
                 const sectionEl = document.createElement('div');
                 sectionEl.className = 'section';
-                
                 sectionEl.innerHTML = `<h3>${section.title}</h3>`;
 
                 section.questions.forEach((q, qIdx) => {
                     const globalQIdx = `${secIdx}-${qIdx}`;
                     const qEl = document.createElement('div');
                     qEl.className = 'question';
+                    
                     qEl.innerHTML = `
                         <div class="question-header">
                             <span class="q-number">Q${qIdx + 1}</span>
@@ -138,10 +136,17 @@
                         ${q.note ? `<div class="note hidden" id="note-${globalQIdx}">解説: ${q.note}</div>` : ''}
                     `;
 
-                    qEl.querySelector(`#text-${globalQIdx}`).innerHTML = q.question || '';
-
+                    const textContainer = qEl.querySelector(`#text-${globalQIdx}`);
                     const answersContainer = qEl.querySelector(`#answers-${globalQIdx}`);
-                    renderQuestionInput(q, answersContainer, globalQIdx);
+
+                    // 穴埋め問題の特別処理
+                    if (q.type === 'fill') {
+                        textContainer.innerHTML = `<strong>以下の本文中の入力欄に、適切な語句を入力しなさい。</strong>`;
+                        renderFillQuestion(q, answersContainer, globalQIdx);
+                    } else {
+                        textContainer.innerHTML = q.question || '';
+                        renderQuestionInput(q, answersContainer, globalQIdx);
+                    }
 
                     sectionEl.appendChild(qEl);
                 });
@@ -158,9 +163,7 @@
                     const label = document.createElement('label');
                     label.className = 'option';
                     label.innerHTML = `<input type="radio" name="q-${globalQIdx}" value="${i}"> ${opt}`;
-                    label.querySelector('input').addEventListener('change', e => {
-                        userAnswers[globalQIdx] = parseInt(e.target.value);
-                    });
+                    label.querySelector('input').addEventListener('change', e => userAnswers[globalQIdx] = parseInt(e.target.value));
                     container.appendChild(label);
                 });
             }
@@ -170,8 +173,7 @@
                     label.className = 'option';
                     label.innerHTML = `<input type="checkbox" value="${i}"> ${opt}`;
                     label.querySelector('input').addEventListener('change', () => {
-                        const checked = Array.from(container.querySelectorAll('input:checked'))
-                                           .map(cb => parseInt(cb.value));
+                        const checked = Array.from(container.querySelectorAll('input:checked')).map(cb => parseInt(cb.value));
                         userAnswers[globalQIdx] = checked;
                     });
                     container.appendChild(label);
@@ -195,26 +197,6 @@
                 input.placeholder = 'ここに回答を入力してください';
                 input.addEventListener('input', e => userAnswers[globalQIdx] = e.target.value.trim());
                 container.appendChild(input);
-            }
-            else if (type === 'fill') {
-                const fillDiv = document.createElement('div');
-                fillDiv.className = 'fill-container';
-                fillDiv.innerHTML = q.question || '';
-
-                Object.keys(q.blanks || {}).forEach(key => {
-                    const regex = new RegExp(`\\[\\[${key}\\]\\]`, 'g');
-                    fillDiv.innerHTML = fillDiv.innerHTML.replace(regex, 
-                        `<input type="text" class="blank-input" data-key="${key}" placeholder="${key}">`);
-                });
-
-                fillDiv.querySelectorAll('.blank-input').forEach(inp => {
-                    inp.addEventListener('input', () => {
-                        if (!userAnswers[globalQIdx]) userAnswers[globalQIdx] = {};
-                        userAnswers[globalQIdx][inp.dataset.key] = inp.value.trim();
-                    });
-                });
-
-                container.appendChild(fillDiv);
             }
             else if (type === 'sort') {
                 const ul = document.createElement('ul');
@@ -253,6 +235,28 @@
             }
         }
 
+        // 穴埋め問題専用表示
+        function renderFillQuestion(q, container, globalQIdx) {
+            const fillDiv = document.createElement('div');
+            fillDiv.className = 'fill-container';
+            fillDiv.innerHTML = q.question || '';
+
+            Object.keys(q.blanks || {}).forEach(key => {
+                const regex = new RegExp(`\\[\\[${key}\\]\\]`, 'g');
+                fillDiv.innerHTML = fillDiv.innerHTML.replace(regex, 
+                    `<input type="text" class="blank-input" data-key="${key}" placeholder="${key}">`);
+            });
+
+            fillDiv.querySelectorAll('.blank-input').forEach(inp => {
+                inp.addEventListener('input', () => {
+                    if (!userAnswers[globalQIdx]) userAnswers[globalQIdx] = {};
+                    userAnswers[globalQIdx][inp.dataset.key] = inp.value.trim();
+                });
+            });
+
+            container.appendChild(fillDiv);
+        }
+
         function makeSortable(ul, globalQIdx) {
             ul.addEventListener('dragstart', e => {
                 e.dataTransfer.setData('text/plain', e.target.dataset.value);
@@ -265,7 +269,8 @@
                 const dragging = ul.querySelector('.dragging');
                 const target = e.target.closest('li');
                 if (dragging && target && dragging !== target) {
-                    if (Array.from(ul.children).indexOf(dragging) < Array.from(ul.children).indexOf(target)) {
+                    const children = Array.from(ul.children);
+                    if (children.indexOf(dragging) < children.indexOf(target)) {
                         target.after(dragging);
                     } else {
                         target.before(dragging);
@@ -275,6 +280,7 @@
             });
         }
 
+        // 提出ボタン
         document.getElementById('submitAllBtn').addEventListener('click', () => {
             if (!currentQuiz) return;
             let score = 0, total = 0;
@@ -290,9 +296,9 @@
                     else if (q.type === 'multiple') correct = JSON.stringify((ans||[]).sort()) === JSON.stringify((q.correct||[]).sort());
                     else if (q.type === 'truefalse') correct = ans === q.correct;
                     else if (q.type === 'input') {
-                        const user = String(ans||'').trim().toLowerCase();
-                        const corr = String(q.correct||'').trim().toLowerCase();
-                        correct = q.caseSensitive ? ans === q.correct : user === corr;
+                        const user = String(ans||'').trim();
+                        const corr = String(q.correct||'').trim();
+                        correct = q.caseSensitive ? user === corr : user.toLowerCase() === corr.toLowerCase();
                     }
                     else if (q.type === 'fill') {
                         correct = Object.keys(q.blanks).every(k => (ans && ans[k]) === q.blanks[k]);
