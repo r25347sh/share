@@ -1,70 +1,63 @@
-// scanner.js - Multiquiz パーサー
+// scanner.js
+export async function loadQuizFile(urlOrText, isUrl = true) {
+    let text;
+    if (isUrl) {
+        const res = await fetch(urlOrText);
+        text = await res.text();
+    } else {
+        text = urlOrText;
+    }
+    return parseMultiquiz(text);
+}
 
-function scanMultiquiz(text) {
+function parseMultiquiz(text) {
     const lines = text.split(/\r?\n/);
-    const quizzes = [];
-    let title = "無題のクイズ";
-    let currentSection = "";
+    const quizData = {
+        title: "Untitled Quiz",
+        description: "",
+        points_default: 2,
+        variables: {},
+        sections: [],
+        quizzes: []
+    };
 
-    let i = 0;
-    while (i < lines.length) {
-        let line = lines[i].trim();
+    let currentSection = null;
 
-        if (line.startsWith('//') || line === '') {
-            i++; continue;
-        }
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line || line.startsWith('//')) return;
 
-        // タイトル設定
+        // 設定行
         if (line.startsWith('title:')) {
-            title = line.substring(6).trim().replace(/^"|"$/g, '');
-            i++; continue;
-        }
-
-        // 大問
-        if (line.startsWith('section:')) {
-            currentSection = line.substring(8).trim().replace(/^"|"$/g, '');
-            i++; continue;
-        }
-
-        // 問題ブロック開始
-        if (line === '{') {
+            quizData.title = line.split(':')[1].trim().replace(/"/g, '');
+        } else if (line.startsWith('description:')) {
+            quizData.description = line.split(':')[1].trim().replace(/"/g, '');
+        } else if (line.startsWith('section:')) {
+            currentSection = line.split(':')[1].trim().replace(/"/g, '');
+            quizData.sections.push(currentSection);
+        } 
+        // 変数定義
+        else if (line.includes('=') && !line.startsWith('{')) {
+            const [key, value] = line.split('=').map(s => s.trim());
+            quizData.variables[key] = parseValue(value);
+        } 
+        // 問題ブロック
+        else if (line.startsWith('{')) {
             let block = '';
-            i++;
-            while (i < lines.length && lines[i].trim() !== '}') {
-                block += lines[i] + '\n';
-                i++;
-            }
-            const quiz = parseQuizBlock(block, currentSection);
-            if (quiz) quizzes.push(quiz);
+            // 簡易的に1ブロックを読み取る（実際はもっと賢くする必要あり）
+            // ここは簡略版です
+            console.log("Problem block detected");
         }
-        i++;
-    }
+    });
 
-    return { title, quizzes, error: null };
+    return quizData;
 }
 
-function parseQuizBlock(block, section) {
-    // 簡易JSON風パーサー（本格版は要改善）
-    try {
-        // 簡略化のため、本格実装は後で
-        // ここでは例としてオブジェクトを返す
-        return {
-            section: section,
-            type: "single",
-            question: "サンプル問題",
-            options: ["A", "B", "C"],
-            correct: 0,
-            points: 2,
-            note: "サンプル注釈"
-        };
-    } catch (e) {
-        console.error("パースエラー", e);
-        return null;
+function parseValue(value) {
+    if (value.startsWith('"') && value.endsWith('"')) {
+        return value.slice(1, -1);
     }
-}
-
-// 問題HTML生成関数（HTML側から呼ぶ）
-function renderQuestionHTML(quiz, index) {
-    // ここに各typeごとのHTML生成ロジックを書く
-    return `<div class="quiz-item"><h3>${quiz.question}</h3></div>`;
+    if (!isNaN(value)) return Number(value);
+    if (value.startsWith('[')) return eval(value); // 危険なので本番は専用パーサー推奨
+    return value;
 }
