@@ -11,26 +11,19 @@ export async function loadQuizFile(source, isUrl = true) {
 }
 
 function parseMultiquiz(text) {
-    const data = {
-        title: "クイズ",
-        description: "",
-        quizzes: []
-    };
+    const data = { title: "クイズ", quizzes: [] };
+    const blocks = text.split(/\{/).slice(1);
 
-    // 簡易ブロック抽出
-    const blocks = text.split(/\{/).filter(b => b.includes('question')).map(b => '{' + b);
-
-    blocks.forEach(block => {
+    blocks.forEach(blockStr => {
+        const block = '{' + blockStr.split('}')[0] + '}';
         try {
-            let clean = block
+            let jsonStr = block
                 .replace(/(\w+):/g, '"$1":')
                 .replace(/,\s*}/g, '}');
 
-            const quiz = JSON.parse(clean);
+            const quiz = JSON.parse(jsonStr);
             if (quiz.question) data.quizzes.push(quiz);
-        } catch(e) {
-            console.log("解析スキップ:", block.substring(0, 50));
-        }
+        } catch(e) {}
     });
 
     return data;
