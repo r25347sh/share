@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>セレクトクイズ - リモート対応</title>
+    <title>マルチクイズ - 選択＋並び替え</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f8f9fa; margin: 0; padding: 20px; }
         .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.1); }
@@ -14,78 +14,72 @@
         .btn-primary { background: #007bff; color: white; }
         .btn-success { background: #28a745; color: white; }
         .upload-area { border: 2px dashed #aaa; padding: 40px; text-align: center; border-radius: 10px; margin: 20px 0; cursor: pointer; }
-        .quiz-item { margin-bottom: 35px; padding: 20px; border: 2px solid #e0e0e0; border-radius: 10px; }
-        .option { padding: 12px 15px; border: 2px solid #ddd; border-radius: 8px; margin: 8px 0; cursor: pointer; }
+        .quiz-item { margin-bottom: 40px; padding: 25px; border: 2px solid #e0e0e0; border-radius: 12px; background: #fafafa; }
+        .question { font-size: 1.25em; margin-bottom: 15px; font-weight: bold; }
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .option { padding: 14px; border: 2px solid #ddd; border-radius: 8px; cursor: pointer; }
         .option:hover { background: #f0f8ff; border-color: #4a90e2; }
-        .option.selected { background: #e3f2fd; border-color: #2196f3; }
-        .option.correct { background: #d4edda; border-color: #28a745; }
-        .option.wrong { background: #f8d7da; border-color: #dc3545; }
+        .option.selected { background: #e3f2fd; border-color: #2196f3; font-weight: bold; }
+        .sort-list { list-style: none; padding: 0; }
+        .sort-item { padding: 12px; background: #fff; border: 2px solid #ccc; margin: 6px 0; border-radius: 6px; cursor: move; }
         .note { margin-top: 15px; padding: 12px; background: #fff3cd; border-radius: 6px; display: none; }
         .progress { text-align: center; font-size: 1.2em; margin: 20px 0; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📝 セレクトクイズ リモート版</h1>
+        <h1>🎯 マルチクイズ（選択＋並び替え）</h1>
 
-        <!-- 読み込み方法選択 -->
         <div id="loadSection">
             <h2>クイズを読み込む</h2>
             
-            <!-- URL直接入力 -->
             <div class="input-group">
-                <label><strong>① 直接URLを入力</strong></label>
-                <input type="text" id="urlInput" placeholder="https://example.com/quiz/sample.selectquiz" />
-                <button class="btn-primary" onclick="loadFromURL()">URLから読み込む</button>
+                <label><strong>① URL直接入力</strong></label>
+                <input type="text" id="urlInput" placeholder="https://example.com/quiz.multiquiz" />
+                <button class="btn-primary" onclick="loadFromURL()">読み込む</button>
             </div>
 
-            <!-- ID入力 -->
             <div class="input-group">
-                <label><strong>② クイズIDで読み込む</strong> (LINK.js使用)</label>
-                <input type="text" id="quizIdInput" placeholder="quiz001" />
+                <label><strong>② クイズID</strong> (LINK.js)</label>
+                <input type="text" id="quizIdInput" placeholder="systan1901" />
                 <button class="btn-primary" onclick="loadFromID()">IDから読み込む</button>
             </div>
 
-            <!-- ファイルアップロード -->
             <div class="upload-area" id="dropArea">
                 <p><strong>③ ローカルファイル</strong></p>
-                <p>ここに .selectquiz ファイルをドラッグ＆ドロップ</p>
-                <input type="file" id="fileInput" accept=".selectquiz" style="display:none;">
+                <input type="file" id="fileInput" accept=".multiquiz" style="display:none;">
                 <button onclick="document.getElementById('fileInput').click()">ファイルを選択</button>
             </div>
         </div>
 
-        <!-- クイズ表示エリア -->
         <div id="quizSection" style="display:none;">
             <div class="progress" id="progress"></div>
             <div id="quizContainer"></div>
             
             <div style="text-align:center; margin:30px 0;">
                 <button class="btn-success" onclick="checkAllAnswers()">解答確認</button>
-                <button onclick="location.reload()" style="margin-left:10px;">別のクイズを読み込む</button>
+                <button onclick="location.reload()">別のクイズを読み込む</button>
             </div>
         </div>
     </div>
 
     <script>
-        // ============= LINK.js の設定（ここにあなたのリンク情報を書いてください） =============
+        // ==================== LINK.js ====================
         const LINKS = {
-            "quiz001": "https://your-domain.com/quizzes/quiz001.selectquiz",
-            "quiz002": "https://your-domain.com/quizzes/quiz002.selectquiz",
-            "sample": "https://example.com/sample.selectquiz",
-            // ここにどんどん追加できます
+            "systan1901": "https://your-domain.com/quizzes/systan_multiquiz_1901-2027.multiquiz",
+            // ここに追加
         };
 
         let quizzes = [];
         let currentAnswers = [];
 
-        // パース関数（前回と同じ）
-        function parseSelectQuiz(text) {
+        function parseMultiquiz(text) {
             quizzes = [];
             const lines = text.trim().split(/\r?\n/);
             
             lines.forEach(line => {
-                if (!line.trim()) return;
+                if (!line.trim() || line.startsWith('//')) return;
+                
                 const parts = [];
                 let current = '';
                 let inQuote = false;
@@ -108,58 +102,19 @@
                 const question = parts[0].replace(/^"|"$/g, '');
                 const correct = parts[1].replace(/^"|"$/g, '');
                 const note = parts[2].replace(/^"|"$/g, '');
-                
+                const typeMatch = parts[3].match(/type:"(\w+)"/);
+                const type = typeMatch ? typeMatch[1] : 'select';
+
                 let options = [];
-                let foundSelect = false;
-                for (let i = 3; i < parts.length; i++) {
+                for (let i = 4; i < parts.length; i++) {
                     let opt = parts[i].replace(/^"|"$/g, '');
-                    if (opt.includes('select')) { foundSelect = true; continue; }
-                    if (foundSelect && opt) options.push(opt);
+                    if (opt) options.push(opt);
                 }
 
-                if (question && options.length >= 2) {
-                    quizzes.push({ question, correct, note, options });
+                if (question && correct) {
+                    quizzes.push({ question, correct, note, type, options });
                 }
             });
-        }
-
-        // URLから読み込み
-        async function loadFromURL() {
-            const url = document.getElementById('urlInput').value.trim();
-            if (!url) return alert('URLを入力してください');
-            
-            try {
-                const res = await fetch(url);
-                if (!res.ok) throw new Error('ファイル取得失敗');
-                const text = await res.text();
-                parseSelectQuiz(text);
-                startQuiz();
-            } catch (e) {
-                alert('読み込みに失敗しました: ' + e.message);
-            }
-        }
-
-        // IDから読み込み
-        async function loadFromID() {
-            const id = document.getElementById('quizIdInput').value.trim();
-            if (!id) return alert('クイズIDを入力してください');
-            
-            const url = LINKS[id];
-            if (!url) return alert(`ID "${id}" が見つかりません。LINKSに登録してください。`);
-            
-            document.getElementById('urlInput').value = url; // 確認用にURLも表示
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('ファイル取得失敗');
-            const text = await res.text();
-            parseSelectQuiz(text);
-            startQuiz();
-        }
-
-        function startQuiz() {
-            if (quizzes.length === 0) return alert('クイズデータがありません');
-            document.getElementById('loadSection').style.display = 'none';
-            document.getElementById('quizSection').style.display = 'block';
-            renderQuizzes();
         }
 
         function renderQuizzes() {
@@ -170,41 +125,72 @@
             quizzes.forEach((quiz, i) => {
                 const div = document.createElement('div');
                 div.className = 'quiz-item';
-                div.innerHTML = `
-                    <div class="question">${i+1}. ${quiz.question}</div>
-                    <div class="options" id="options-${i}"></div>
+                div.id = `quiz-${i}`;
+                
+                let content = `<div class="question">${i+1}. ${quiz.question}</div>`;
+
+                if (quiz.type === 'sort') {
+                    content += `<ul class="sort-list" id="sort-${i}" ondrop="drop(event)" ondragover="allowDrop(event)">`;
+                    quiz.options.forEach((opt, j) => {
+                        content += `<li class="sort-item" draggable="true" ondragstart="drag(event)" data-index="${j}">${opt}</li>`;
+                    });
+                    content += `</ul>`;
+                } else {
+                    content += `<div class="options" id="options-${i}">`;
+                    quiz.options.forEach((opt, j) => {
+                        content += `<div class="option" onclick="selectOption(${i}, '${opt}', this)">${opt}</div>`;
+                    });
+                    content += `</div>`;
+                }
+
+                content += `
                     <div class="note" id="note-${i}">${quiz.note}</div>
                     <div class="result" id="result-${i}"></div>
                 `;
+                div.innerHTML = content;
                 container.appendChild(div);
-
-                const optionsDiv = document.getElementById(`options-${i}`);
-                quiz.options.forEach((opt, j) => {
-                    const optDiv = document.createElement('div');
-                    optDiv.className = 'option';
-                    optDiv.textContent = opt;
-                    optDiv.onclick = () => selectOption(i, j, optDiv);
-                    optionsDiv.appendChild(optDiv);
-                });
             });
 
             document.getElementById('progress').textContent = `全 ${quizzes.length} 問`;
         }
 
-        window.selectOption = function(index, optIndex, element) {
+        window.selectOption = function(index, selected, element) {
             const parent = element.parentElement;
             parent.querySelectorAll('.option').forEach(el => el.classList.remove('selected'));
             element.classList.add('selected');
-            currentAnswers[index] = optIndex;
+            currentAnswers[index] = selected;
+        };
+
+        // 並び替え用ドラッグ＆ドロップ
+        window.allowDrop = function(ev) { ev.preventDefault(); };
+        window.drag = function(ev) { ev.dataTransfer.setData("text", ev.target.dataset.index); };
+        window.drop = function(ev) {
+            ev.preventDefault();
+            const list = ev.currentTarget;
+            const items = Array.from(list.children);
+            const fromIndex = parseInt(ev.dataTransfer.getData("text"));
+            const toIndex = items.indexOf(ev.target);
+            if (fromIndex !== toIndex) {
+                const moved = items[fromIndex];
+                list.removeChild(moved);
+                list.insertBefore(moved, items[toIndex]);
+            }
         };
 
         window.checkAllAnswers = function() {
             let score = 0;
             quizzes.forEach((quiz, i) => {
-                const selected = currentAnswers[i];
-                const isCorrect = selected !== null && quiz.options[selected] === quiz.correct;
                 const resultEl = document.getElementById(`result-${i}`);
                 const noteEl = document.getElementById(`note-${i}`);
+                let isCorrect = false;
+
+                if (quiz.type === 'sort') {
+                    const currentOrder = Array.from(document.getElementById(`sort-${i}`).children)
+                        .map(el => el.textContent.trim()).join(',');
+                    isCorrect = currentOrder === quiz.options.join(',');
+                } else {
+                    isCorrect = currentAnswers[i] === quiz.correct;
+                }
 
                 if (isCorrect) {
                     score++;
@@ -217,34 +203,56 @@
             alert(`採点結果: ${score} / ${quizzes.length} 正解！`);
         };
 
-        // ファイルアップロード（従来通り）
+        async function loadFromURL() {
+            const url = document.getElementById('urlInput').value.trim();
+            if (!url) return alert('URLを入力してください');
+            try {
+                const res = await fetch(url);
+                const text = await res.text();
+                parseMultiquiz(text);
+                startQuiz();
+            } catch (e) { alert('読み込み失敗: ' + e.message); }
+        }
+
+        async function loadFromID() {
+            const id = document.getElementById('quizIdInput').value.trim();
+            if (!id || !LINKS[id]) return alert('IDが見つかりません');
+            document.getElementById('urlInput').value = LINKS[id];
+            const res = await fetch(LINKS[id]);
+            const text = await res.text();
+            parseMultiquiz(text);
+            startQuiz();
+        }
+
+        function startQuiz() {
+            if (quizzes.length === 0) return alert('問題がありません');
+            document.getElementById('loadSection').style.display = 'none';
+            document.getElementById('quizSection').style.display = 'block';
+            renderQuizzes();
+        }
+
+        // ファイルアップロード & ドラッグ&ドロップ
         document.getElementById('fileInput').addEventListener('change', e => {
-            if (e.target.files[0]) {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    parseSelectQuiz(ev.target.result);
-                    startQuiz();
-                };
-                reader.readAsText(e.target.files[0]);
-            }
+            if (e.target.files[0]) readFile(e.target.files[0]);
         });
 
-        // ドラッグ&ドロップ
         const dropArea = document.getElementById('dropArea');
         dropArea.addEventListener('dragover', e => { e.preventDefault(); dropArea.style.background = '#e3f2fd'; });
         dropArea.addEventListener('dragleave', () => dropArea.style.background = '');
         dropArea.addEventListener('drop', e => {
             e.preventDefault();
             dropArea.style.background = '';
-            if (e.dataTransfer.files[0]) {
-                const reader = new FileReader();
-                reader.onload = ev => {
-                    parseSelectQuiz(ev.target.result);
-                    startQuiz();
-                };
-                reader.readAsText(e.dataTransfer.files[0]);
-            }
+            if (e.dataTransfer.files[0]) readFile(e.dataTransfer.files[0]);
         });
+
+        function readFile(file) {
+            const reader = new FileReader();
+            reader.onload = ev => {
+                parseMultiquiz(ev.target.result);
+                startQuiz();
+            };
+            reader.readAsText(file);
+        }
     </script>
 </body>
 </html>
