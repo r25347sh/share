@@ -4,7 +4,7 @@
 - [公共](koukyou)
 - [論理国語](ronrikokugo)
 - [英語コミュニケーション](eikomyu)
-- [全体情報](info)
+- [試験情報](info)
 
 ## その他
 - [印刷物類](print)
