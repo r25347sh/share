@@ -4,7 +4,7 @@
 - [公共](koukyou)
 - [論理国語](ronrikokugo)
 - [英語コミュニケーション](eikomyu)
-- [試験情報](info)
+- [試験情報](info) > [佐藤晴の試験結果](info/1kimatsu/haru_kekka)
 
 ## その他
 - [印刷物類](print)
