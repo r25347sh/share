@@ -10,3 +10,4 @@
 - [印刷物類](print)
 - [お問い合わせ](https://docs.google.com/forms/d/e/1FAIpQLSeQSO3fGWAL3XGpva-dwb-m-vBiR3AokKubNArf2TlfHHD2Cg/viewform?usp=dialog)
 - [千葉トレイルブレイザーズ公式HP⇗](http://ctb-brass.com/index.html)
+- [遊びの探求ゼミメンバーサイト制作中](https://r25347sh.github.io/seminar-site/)
