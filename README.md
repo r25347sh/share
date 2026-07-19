@@ -1,5 +1,6 @@
 # share
 
+なにか御用があればrrr25347sh@proton.meへ（ 2026/07/18の17:00にアカウント変更）
 ## 教科一覧
 - [公共](koukyou)
 - [論理国語](ronrikokugo)
